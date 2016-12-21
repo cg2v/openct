@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	/* Make sure the mask is good */
 	umask(033);
 
-	while ((c = getopt(argc, argv, "df:hvs")) != -1) {
+	while ((c = getopt(argc, argv, "df:hvn")) != -1) {
 		switch (c) {
 		case 'd':
 			opt_debug++;
