@@ -442,6 +442,7 @@ RESPONSECODE IFDHPowerICC(DWORD Lun, DWORD Action, PUCHAR Atr,
 		break;
 	case IFD_RESET:
 		erc = ifd_card_reset(ctx->reader, slotLun, NULL, 0);
+		break;
 	case IFD_POWER_DOWN:
 		erc = ifd_card_eject(ctx->reader, slotLun, 0, NULL);
 		break;
