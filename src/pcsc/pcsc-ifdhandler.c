@@ -170,9 +170,7 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 			ct_debug("Found channel %d of %s for lun 0x%x", slotLun, ctx->reader->name, Lun);
 			ctx->opens++;
 		}
-#ifdef HAVE_PTHREAD
-		pthread_mutex_unlock(&ctx->mutex); //check
-#endif
+		unlockContext(ctx);
 		ct_debug("Reader for Lun 0x%x already open", Lun);
 		return ret;
 	}
@@ -258,14 +256,13 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 		ret = IFD_NO_SUCH_DEVICE;
 		goto out;
 	}
+	ifd_activate(reader);
 	ctx->reader_lun = Lun >> 16;
 	ctx->reader = reader;
 	ctx->connected = 1;
 	ctx->opens = 1;
 out:
-#ifdef HAVE_PTHREAD
-	pthread_mutex_unlock(&ctx->mutex); //check
-#endif
+	unlockContext(ctx);
 	return ret;
 #endif
 }
