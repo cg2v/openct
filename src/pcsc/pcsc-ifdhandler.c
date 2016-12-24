@@ -167,6 +167,7 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 			ct_error("Lun 0x%x specifies non-existant slot in reader %s", Lun, ctx->reader->name);
 			ret = IFD_NO_SUCH_DEVICE;
 		} else {
+			ct_debug("Found channel %d of %s for lun 0x%x", slotLun, ctx->reader->name, Lun);
 			ctx->opens++;
 		}
 #ifdef HAVE_PTHREAD
@@ -175,7 +176,7 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 		ct_debug("Reader for Lun 0x%x already open", Lun);
 		return ret;
 	}
-
+	ct_debug("Open %s for lun %x", DeviceName, Lun);
 	ctx = getFreeContext();
 	if (ctx == NULL) {
 		ct_error("No available context slots for %s", DeviceName);
@@ -250,6 +251,7 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 		ret = IFD_COMMUNICATION_ERROR;
 		goto out;
 	}
+	ct_debug("Device %s is %s for lun 0x%x", DeviceName, reader->name, Lun);
 	if (slotLun > reader->nslots) {
 		ct_error("Lun 0x%x specifies non-existant slot in reader %s", Lun, reader->name);
 		ifd_close(reader);
@@ -287,6 +289,7 @@ RESPONSECODE IFDHCloseChannel (DWORD Lun) {
 		ret = IFD_NO_SUCH_DEVICE;
 		goto out;
 	}
+	ct_debug("Close lun %x", Lun);
 	if (ctx->opens-- > 1)
 		goto out;
 	ifd_deactivate(ctx->reader);
@@ -314,7 +317,7 @@ RESPONSECODE IFDHGetCapabilities(DWORD Lun, DWORD Tag, PDWORD Length,
 
 	if (setup_done == 0)
 		return IFD_COMMUNICATION_ERROR;
-
+	ct_debug("GetCap lun 0x%x Tag 0x%x", Lun, Tag);
 	switch (Tag) {
 	case TAG_IFD_SIMULTANEOUS_ACCESS:
 		charvalue = IFDH_MAX_READERS;
@@ -412,6 +415,7 @@ RESPONSECODE IFDHICCPresence(DWORD Lun) {
 	}
 	if ((status & IFD_CARD_PRESENT) == 0)
 		ret = IFD_ICC_NOT_PRESENT;
+	//ct_debug("Presence lun 0x%x %d", Lun, ret);
 out:
 	unlockContext(ctx);
 	return ret;
@@ -448,6 +452,7 @@ RESPONSECODE IFDHPowerICC(DWORD Lun, DWORD Action, PUCHAR Atr,
 		ret = IFD_NOT_SUPPORTED;
 		goto out;
 	}
+	ct_debug("Power lun %d %d %d (%d)", Lun, Action, erc, *AtrLength);
 	if (erc < 0) {
 		ret = IFD_COMMUNICATION_ERROR;
 		goto out;
@@ -473,6 +478,7 @@ RESPONSECODE IFDHSetCapabilities(DWORD Lun, DWORD Tag, DWORD Length,
 /* openct drivers handle this internally */
 RESPONSECODE IFDHSetProtocolParameters (DWORD Lun, DWORD Protocol, UCHAR Flags,
 					UCHAR PTS1, UCHAR PTS2, UCHAR PTS3) {
+	ct_debug("SetProtocol lun 0x%x %d 0x%x", Lun, Protocol, Flags);
 	if (Protocol > 1)
 		return IFD_NOT_SUPPORTED;
 	if (Flags)
@@ -509,6 +515,7 @@ RESPONSECODE IFDHTransmitToICC (DWORD Lun, SCARD_IO_HEADER SendPci, PUCHAR TxBuf
 	}
 	erc = ifd_card_command(ctx->reader, slotLun, TxBuffer, TxLength, RxBuffer,
 			       *RxLength);
+	ct_debug("Transmit lun 0x%x %d %d", Lun, TxLength, erc);
 	if (erc < 0) {
 		ret = IFD_COMMUNICATION_ERROR;
 		if (erc == IFD_ERROR_BUFFER_TOO_SMALL)
