@@ -127,6 +127,12 @@ AC_ARG_ENABLE(
 	[test "${enableval}" = "no" && ENABLE_NON_PRIVILEGED="#"],
 	[ENABLE_NON_PRIVILEGED="#"]
 )
+AC_ARG_ENABLE(
+	[server],
+	[AS_HELP_STRING([--disable-server],[don\'t build server, just pcsc support])],
+	,
+	[enable_server="yes"]
+)
 
 AC_ARG_WITH(
 	[bundle],
@@ -194,6 +200,15 @@ AC_ARG_WITH(
 	[daemon_groups="${withval}"],
 	[daemon_groups="usb"]
 )
+
+if test "${enable_server}" = "no"; then
+	AC_MSG_CHECKING([for option compatibility with --disable-server])
+	test "${enable_pcsc}" != "yes" && AC_MSG_ERROR([--disable-server does not make sense without PCSC])
+	test -n "${udevdir}" && AC_MSG_ERROR([--with-udev does not make sense with server disabled])
+	test -n "${hotplugdir}" && AC_MSG_ERROR([--with-hotplug does not make sense with server disabled])
+	AC_MSG_RESULT([OK])
+	AC_DEFINE([NO_SERVER], [1], [No standalone openct daemon])
+fi
 
 dnl Checks for programs.
 AC_PROG_CPP
@@ -343,12 +358,13 @@ if test "${enable_usb}" = "yes"; then
 	OPTIONAL_LIBUSB_CFLAGS="${LIBUSB_CFLAGS}"
 	OPTIONAL_LIBUSB_LIBS="${LIBUSB_LIBS}"
 fi
-
-OPENCT_SOCKET_PATH='${localstatedir}/run/openct'
-CPPFLAGS_OPENCT_SOCKET_PATH='-DOPENCT_SOCKET_PATH="\"$(OPENCT_SOCKET_PATH)\""'
 CPPFLAGS_OPENCT_CONF_PATH='-DOPENCT_CONF_PATH="\"$(sysconfdir)/openct.conf\""'
 CPPFLAGS_OPENCT_MODULES_PATH='-DOPENCT_MODULES_PATH="\"$(ifddir)\""'
-CPPFLAGS_OPENCT_IFDHANDLER_PATH='-DOPENCT_IFDHANDLER_PATH="\"$(sbindir)/ifdhandler\""'
+if test "${enable_server}" = "yes"; then
+	OPENCT_SOCKET_PATH='${localstatedir}/run/openct'
+	CPPFLAGS_OPENCT_SOCKET_PATH='-DOPENCT_SOCKET_PATH="\"$(OPENCT_SOCKET_PATH)\""'
+	CPPFLAGS_OPENCT_IFDHANDLER_PATH='-DOPENCT_IFDHANDLER_PATH="\"$(sbindir)/ifdhandler\""'
+fi
 CPPFLAGS="${CPPFLAGS} \
 	${CPPFLAGS_OPENCT_CONF_PATH} \
 	${CPPFLAGS_OPENCT_SOCKET_PATH} \
@@ -394,6 +410,7 @@ AM_CONDITIONAL([ENABLE_BUNDLES], [test -n "${bundledir}"])
 AM_CONDITIONAL([ENABLE_UDEV], [test -n "${udevdir}"])
 AM_CONDITIONAL([ENABLE_HOTPLUG], [test -n "${hotplugdir}"])
 AM_CONDITIONAL([ENABLE_PCSC], [test "${enable_pcsc}" = "yes"])
+AM_CONDITIONAL([ENABLE_SERVER], [test "${enable_server}" = "yes"])
 
 AC_CONFIG_FILES([
 	Makefile
@@ -425,6 +442,7 @@ Libraries:               $(eval eval eval echo "${libdir}")
 api doc support:         ${enable_api_doc}
 usb support:             ${enable_usb}
 pcsc support:            ${enable_pcsc}
+openct server:           ${enable_server}
 non-privileged support:  ${ENABLE_NON_PRIVILEGED}
 
 Host:                    ${host}

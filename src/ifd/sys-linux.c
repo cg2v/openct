@@ -524,6 +524,9 @@ int ifd_scan_usb(void)
 				}
 			}
 
+#ifdef NO_SERVER
+/* XXX need callback to fill in known devices */
+#else
 			if (driver != NULL) {
 				snprintf(typedev, sizeof(typedev),
 					 "/dev/bus/usb/%s/%s",
@@ -540,6 +543,7 @@ int ifd_scan_usb(void)
 					ifd_spawn_handler(driver, typedev, -1);
 				}
 			}
+#endif
 		}
 	}
 #else
@@ -602,6 +606,9 @@ int ifd_scan_usb(void)
 					}
 				}
 
+#ifdef NO_SERVER
+/* XXX need callback to fill in known devices */
+#else
 				if (driver != NULL) {
 					char typedev[1024];
 
@@ -610,6 +617,7 @@ int ifd_scan_usb(void)
 						busnum, devnum);
 					ifd_spawn_handler(driver, typedev, -1);
 				}
+#endif
 			}
 		}
 	}

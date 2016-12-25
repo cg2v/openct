@@ -539,7 +539,11 @@ int ifd_scan_usb(void)
 			snprintf(typedev, sizeof(typedev),
 				 "usb:%s", dev->filename);
 
+#ifdef NO_SERVER
+/* XXX callback to populate known devices */
+#else
 			ifd_spawn_handler(driver, typedev, -1);
+#endif
 		}
 	}
 #else
@@ -601,8 +605,11 @@ int ifd_scan_usb(void)
 				continue;
 			snprintf(typedev, sizeof(typedev),
 				 "usb:/dev/%s", device_info.udi_devnames[0]);
-
+#ifdef NO_SERVER
+/* XXX callback to populate known devices */
+#else
 			ifd_spawn_handler(driver, typedev, -1);
+#endif
 		}
 		close(controller_fd);
 	}

@@ -1,8 +1,10 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
+if ENABLE_SERVER
 bin_PROGRAMS = openct-tool
 sbin_PROGRAMS = openct-control
 man1_MANS = openct-tool.1
+endif
 
 openct_tool_SOURCES = openct-tool.c
 openct_tool_LDADD = $(top_builddir)/src/ct/libopenct.la

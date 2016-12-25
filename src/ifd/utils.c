@@ -79,6 +79,7 @@ long ifd_time_elapsed(struct timeval *then)
 	return delta.tv_sec * 1000 + (delta.tv_usec / 1000);
 }
 
+#ifndef NO_SERVER
 /*
  * Spawn an ifdhandler
  */
@@ -245,4 +246,5 @@ int daemon(int nochdir, int noclose)
 	umask(0027);
 	return 0;
 }
+#endif
 #endif

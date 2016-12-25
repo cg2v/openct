@@ -21,11 +21,19 @@ struct ct_config ct_config = {
 	1,			/* autoload */
 	1,			/* hotplug */
 	0,			/* suppress_errors */
+#ifdef NO_SERVER
+	"",
+#else
 	OPENCT_IFDHANDLER_PATH,	/* ifdhandler */
+#endif
 	OPENCT_MODULES_PATH,	/* modules_dir */
 	NULL,			/* driver_modules_dir */
 	NULL,			/* protocol_modules_dir */
+#ifdef NO_SERVER
+	"",
+#else
 	OPENCT_SOCKET_PATH,	/* socket_dir */
+#endif
 };
 
 #define issepa(c)	(strchr("=;,{}", (c)) != NULL)

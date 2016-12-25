@@ -548,7 +548,9 @@ ifd_recv_response(ifd_protocol_t * prot, void *buffer, size_t len, long timeout)
  */
 void ifd_close(ifd_reader_t * reader)
 {
+#ifndef NO_SERVER
 	ifd_detach(reader);
+#endif
 
 	if (reader->driver->ops->close)
 		reader->driver->ops->close(reader);
@@ -597,6 +599,7 @@ int ifd_get_eventfd(ifd_reader_t *reader, short *events)
 
 static void ifd_slot_status_update(ifd_reader_t *reader, int slot, int status)
 {
+#ifndef NO_SERVER
 	static unsigned int card_seq = 1;
 
 	ct_info_t *info = reader->status;
@@ -617,6 +620,7 @@ static void ifd_slot_status_update(ifd_reader_t *reader, int slot, int status)
 		info->ct_card[slot] = new_seq;
 		ct_status_update(info);
 	}
+#endif
 }
 
 void ifd_poll(ifd_reader_t *reader)

@@ -1,12 +1,14 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 noinst_LTLIBRARIES = libifd.la
+if ENABLE_SERVER
 sbin_PROGRAMS = ifdhandler ifdproxy
+endif
 noinst_HEADERS = atr.h ctbcs.h ifdhandler.h internal.h ria.h usb-descriptors.h
 
 libifd_la_SOURCES = \
 	apdu.c atr.c checksum.c conf.c ctbcs.c device.c driver.c \
-	init.c locks.c manager.c modules.c pcmcia.c pcmcia-block.c process.c protocol.c \
+	init.c modules.c pcmcia.c pcmcia-block.c protocol.c \
 	reader.c serial.c usb.c usb-descriptors.c utils.c \
 	\
 	ifd-acr30u.c ifd-cardman.c ifd-ccid.c ifd-cm4000.c ifd-egate.c \
@@ -18,9 +20,11 @@ libifd_la_SOURCES = \
 	proto-gbp.c proto-sync.c proto-t0.c proto-t1.c \
 	proto-trans.c proto-escape.c \
 	\
-	sys-sunray.c sys-solaris.c sys-bsd.c sys-linux.c sys-null.c sys-osx.c \
-	\
-	ria.c
+	sys-sunray.c sys-solaris.c sys-bsd.c sys-linux.c sys-null.c sys-osx.c
+if ENABLE_SERVER
+libifd_la_SOURCES += \
+	locks.c manager.c process.c ria.c
+endif
 # new driver not working yet: ifd-wbeiuu.c
 libifd_la_LIBADD = $(top_builddir)/src/ct/libopenct.la $(LTLIB_LIBS) $(OPTIONAL_LIBUSB_LIBS)
 libifd_la_CFLAGS = $(AM_CFLAGS) \
