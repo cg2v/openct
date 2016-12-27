@@ -8,7 +8,7 @@ noinst_HEADERS = atr.h ctbcs.h ifdhandler.h internal.h ria.h usb-descriptors.h
 
 libifd_la_SOURCES = \
 	apdu.c atr.c checksum.c conf.c ctbcs.c device.c driver.c \
-	init.c modules.c pcmcia.c pcmcia-block.c protocol.c \
+	init.c manager.c modules.c pcmcia.c pcmcia-block.c protocol.c \
 	reader.c serial.c usb.c usb-descriptors.c utils.c \
 	\
 	ifd-acr30u.c ifd-cardman.c ifd-ccid.c ifd-cm4000.c ifd-egate.c \
@@ -23,7 +23,7 @@ libifd_la_SOURCES = \
 	sys-sunray.c sys-solaris.c sys-bsd.c sys-linux.c sys-null.c sys-osx.c
 if ENABLE_SERVER
 libifd_la_SOURCES += \
-	locks.c manager.c process.c ria.c
+	locks.c process.c ria.c
 endif
 # new driver not working yet: ifd-wbeiuu.c
 libifd_la_LIBADD = $(top_builddir)/src/ct/libopenct.la $(LTLIB_LIBS) $(OPTIONAL_LIBUSB_LIBS)

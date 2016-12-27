@@ -261,6 +261,7 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 	ctx->reader = reader;
 	ctx->connected = 1;
 	ctx->opens = 1;
+	ifd_attach(reader);
 out:
 	unlockContext(ctx);
 	return ret;

@@ -548,9 +548,7 @@ ifd_recv_response(ifd_protocol_t * prot, void *buffer, size_t len, long timeout)
  */
 void ifd_close(ifd_reader_t * reader)
 {
-#ifndef NO_SERVER
 	ifd_detach(reader);
-#endif
 
 	if (reader->driver->ops->close)
 		reader->driver->ops->close(reader);
