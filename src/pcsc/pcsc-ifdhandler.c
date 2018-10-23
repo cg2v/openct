@@ -9,6 +9,7 @@
 #endif
 #include <limits.h>
 #include <openct/error.h>
+#include <openct/conf.h>
 #include <openct/logging.h>
 #include <openct/device.h>
 #include <openct/driver.h>
@@ -77,23 +78,29 @@ static void __init() {
 
 static IFDH_Context *getContextFor(DWORD Lun) {
 	int i;
+	IFDH_Context *ctx = NULL;
 	DWORD readerLun = Lun >> 16;
+#ifdef HAVE_PTHREAD
+	pthread_mutex_lock(&ifdh_contextlist_mutex); //check
+#endif
+	for (i = 0; i < IFDH_MAX_READERS; i++) {
+		ctx = &ifdh_context[i];
+#ifdef HAVE_PTHREAD
+		pthread_mutex_lock(&ctx->mutex); //check
+#endif
+		if (ctx->connected &&
+		    readerLun == ctx->reader_lun) {
+			break;
+		}
+#ifdef HAVE_PTHREAD
+		pthread_mutex_unlock(&ctx->mutex); //check
+#endif
+	}
 #ifdef HAVE_PTHREAD
 	pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
 #endif
-	for (i = 0; i < IFDH_MAX_READERS; i++) {
-		IFDH_Context *ctx = &ifdh_context[i];
-		if (ctx->connected &&
-		    readerLun == ctx->reader_lun) {
-#ifdef HAVE_PTHREAD
-			pthread_mutex_lock(&ctx->mutex); //check
-#endif
-			return ctx;
-		}
-#ifdef HAVE_PTHREAD
-		pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
-#endif
-	}
+	if (i < IFDH_MAX_READERS)
+		return ctx;
 	return NULL;
 }
 
@@ -101,16 +108,19 @@ static IFDH_Context *getFreeContext(void) {
 	int i;
 	IFDH_Context *ctx = NULL;
 #ifdef HAVE_PTHREAD
-	pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
+	pthread_mutex_lock(&ifdh_contextlist_mutex); //check
 #endif
 	for (i = 0; i < IFDH_MAX_READERS; i++) {
 		ctx = &ifdh_context[i];
-		if (!ctx->connected) {
 #ifdef HAVE_PTHREAD
-			pthread_mutex_lock(&ctx->mutex); //check
+		pthread_mutex_lock(&ctx->mutex); //check
 #endif
+		if (!ctx->connected) {
 			break;
 		}
+#ifdef HAVE_PTHREAD
+		pthread_mutex_unlock(&ctx->mutex); //check
+#endif
 	}
 #ifdef HAVE_PTHREAD
 	pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
@@ -122,21 +132,15 @@ static IFDH_Context *getFreeContext(void) {
 
 static void unlockContext(IFDH_Context *ctx) {
 #ifdef HAVE_PTHREAD
-	pthread_mutex_lock(&ctx->mutex); //check
+	pthread_mutex_unlock(&ctx->mutex); //check
 #endif
 }
 
 static void freeContext(IFDH_Context *ctx) {
-#ifdef HAVE_PTHREAD
-	pthread_mutex_unlock(&ctx->mutex); //check
-#endif
-#ifdef HAVE_PTHREAD
-	pthread_mutex_lock(&ifdh_contextlist_mutex); //check
-#endif
 	ctx->connected = 0;
 	ctx->reader_lun = 0;
 #ifdef HAVE_PTHREAD
-	pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
+	pthread_mutex_unlock(&ctx->mutex); //check
 #endif
 }
 RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
