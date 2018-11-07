@@ -76,55 +76,45 @@ static void __init() {
 	setup_done = 1;
 }
 
-static IFDH_Context *getContextFor(DWORD Lun) {
+static IFDH_Context *getContextFor_r(DWORD Lun) {
 	int i;
 	IFDH_Context *ctx = NULL;
 	DWORD readerLun = Lun >> 16;
-#ifdef HAVE_PTHREAD
-	pthread_mutex_lock(&ifdh_contextlist_mutex); //check
-#endif
 	for (i = 0; i < IFDH_MAX_READERS; i++) {
 		ctx = &ifdh_context[i];
-#ifdef HAVE_PTHREAD
-		pthread_mutex_lock(&ctx->mutex); //check
-#endif
 		if (ctx->connected &&
 		    readerLun == ctx->reader_lun) {
+#ifdef HAVE_PTHREAD
+		        pthread_mutex_lock(&ctx->mutex); //check
+#endif
 			break;
 		}
-#ifdef HAVE_PTHREAD
-		pthread_mutex_unlock(&ctx->mutex); //check
-#endif
 	}
-#ifdef HAVE_PTHREAD
-	pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
-#endif
 	if (i < IFDH_MAX_READERS)
 		return ctx;
 	return NULL;
 }
 
-static IFDH_Context *getFreeContext(void) {
+static IFDH_Context *getContextFor(DWORD Lun) {
+	IFDH_Context *ctx = NULL;
+	lockContextList();
+	ctx = getContextFor_r(Lun);
+	unlockContextList();
+	return ctx;
+}
+
+static IFDH_Context *getFreeContext_r(void) {
 	int i;
 	IFDH_Context *ctx = NULL;
-#ifdef HAVE_PTHREAD
-	pthread_mutex_lock(&ifdh_contextlist_mutex); //check
-#endif
 	for (i = 0; i < IFDH_MAX_READERS; i++) {
 		ctx = &ifdh_context[i];
-#ifdef HAVE_PTHREAD
-		pthread_mutex_lock(&ctx->mutex); //check
-#endif
 		if (!ctx->connected) {
+#ifdef HAVE_PTHREAD
+			pthread_mutex_lock(&ctx->mutex); //check
+#endif
 			break;
 		}
-#ifdef HAVE_PTHREAD
-		pthread_mutex_unlock(&ctx->mutex); //check
-#endif
 	}
-#ifdef HAVE_PTHREAD
-	pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
-#endif
 	if (i < IFDH_MAX_READERS)
 		return ctx;
 	return NULL;
@@ -136,13 +126,18 @@ static void unlockContext(IFDH_Context *ctx) {
 #endif
 }
 
-static void freeContext(IFDH_Context *ctx) {
-	ctx->connected = 0;
-	ctx->reader_lun = 0;
+static void lockContextList(void) {
 #ifdef HAVE_PTHREAD
-	pthread_mutex_unlock(&ctx->mutex); //check
+  pthread_mutex_lock(&ifdh_contextlist_mutex); //check
 #endif
 }
+
+static void unlockContextList(void) {
+#ifdef HAVE_PTHREAD
+  pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
+#endif
+}
+
 RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 	RESPONSECODE ret = IFD_SUCCESS;
 #ifndef __APPLE__
@@ -159,9 +154,9 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 	DWORD slotLun = Lun & 0xFFFF;
 	if (setup_done == 0)
 		return IFD_COMMUNICATION_ERROR;
-
+	lockContextList();
 	/* Check to see if this reader is already open */
-	ctx = getContextFor(Lun);
+	ctx = getContextFor_r(Lun);
 
 	/* found matching reader. Check if slot is valid, allow duplicate opens */
 	if (ctx) {
@@ -175,17 +170,19 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 			ctx->opens++;
 		}
 		unlockContext(ctx);
+		unlockContextList();
 		ct_debug("Reader for Lun 0x%x already open", Lun);
 		return ret;
 	}
 	ct_debug("Open %s for lun %x", DeviceName, Lun);
-	ctx = getFreeContext();
+	ctx = getFreeContext_r();
 	if (ctx == NULL) {
 		ct_error("No available context slots for %s", DeviceName);
 		return IFD_COMMUNICATION_ERROR;
 	}
 #ifdef __APPLE__
 	unlockContext(ctx);
+	unlockContextList();
 	return IFD_NO_SUCH_DEVICE; /* no scanning yet */
 #else
 	/* format: usb:%04x/%04x, vendor, product */
@@ -268,6 +265,7 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 	ifd_attach(reader);
 out:
 	unlockContext(ctx);
+	unlockContextList();
 	return ret;
 #endif
 }
@@ -282,10 +280,13 @@ RESPONSECODE IFDHCloseChannel (DWORD Lun) {
 
 	if (setup_done == 0)
 		return IFD_COMMUNICATION_ERROR;
+	lockContextList();
 	/* Check to see if this reader is open*/
-	ctx = getContextFor(Lun);
-	if (ctx == NULL)
-		return IFD_NO_SUCH_DEVICE;
+	ctx = getContextFor_r(Lun);
+	if (ctx == NULL) {
+		ret = IFD_NO_SUCH_DEVICE;
+		goto out2;
+	}
 	if (slotLun > ctx->reader->nslots) {
 		ct_error("Lun 0x%x specifies non-existant slot in reader %s", Lun, ctx->reader->name);
 		ret = IFD_NO_SUCH_DEVICE;
@@ -297,10 +298,13 @@ RESPONSECODE IFDHCloseChannel (DWORD Lun) {
 	ifd_deactivate(ctx->reader);
 	ifd_close(ctx->reader);
 	ctx->reader = NULL;
-	freeContext(ctx);
-	return IFD_SUCCESS;
+	ctx->connected = 0;
+	ctx->reader_lun = 0;
+	ret = IFD_SUCCESS;
 out:
 	unlockContext(ctx);
+out2:
+	unlockContextList();
 	return ret;
 }
 RESPONSECODE IFDHControl (DWORD Lun, DWORD dwControlCode, PUCHAR TxBuffer, DWORD TxLength,
