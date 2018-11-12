@@ -238,6 +238,7 @@ RESPONSECODE 	IFDHCreateChannelByName (DWORD Lun, LPSTR DeviceName) {
 		goto out;
 	}
 	sprintf(devicedesc, "usb:%s", devpath);
+	free(devdup);
 	reader = ifd_open(drivername, devicedesc);
 	free(devicedesc);
 	if (reader == NULL) {
@@ -453,7 +454,7 @@ RESPONSECODE IFDHPowerICC(DWORD Lun, DWORD Action, PUCHAR Atr,
 		ret = IFD_NOT_SUPPORTED;
 		goto out;
 	}
-	ct_debug("Power lun %d %d %d (%d)", Lun, Action, erc, *AtrLength);
+	ct_debug("Power lun %d %d %d", Lun, Action, erc);
 	if (erc < 0) {
 		ret = IFD_COMMUNICATION_ERROR;
 		goto out;
