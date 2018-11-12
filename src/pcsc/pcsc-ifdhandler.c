@@ -76,6 +76,18 @@ static void __init() {
 	setup_done = 1;
 }
 
+static void lockContextList(void) {
+#ifdef HAVE_PTHREAD
+	pthread_mutex_lock(&ifdh_contextlist_mutex); //check
+#endif
+}
+
+static void unlockContextList(void) {
+#ifdef HAVE_PTHREAD
+	pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
+#endif
+}
+
 static IFDH_Context *getContextFor_r(DWORD Lun) {
 	int i;
 	DWORD readerLun = Lun >> 16;
@@ -117,18 +129,6 @@ static IFDH_Context *getFreeContext_r(void) {
 static void unlockContext(IFDH_Context *ctx) {
 #ifdef HAVE_PTHREAD
 	pthread_mutex_unlock(&ctx->mutex); //check
-#endif
-}
-
-static void lockContextList(void) {
-#ifdef HAVE_PTHREAD
-	pthread_mutex_lock(&ifdh_contextlist_mutex); //check
-#endif
-}
-
-static void unlockContextList(void) {
-#ifdef HAVE_PTHREAD
-	pthread_mutex_unlock(&ifdh_contextlist_mutex); //check
 #endif
 }
 
