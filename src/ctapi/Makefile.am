@@ -1,7 +1,9 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
+if ENABLE_SERVER
 openctinclude_HEADERS = ctapi.h
 lib_LTLIBRARIES = libopenctapi.la
+endif
 
 libopenctapi_la_SOURCES = ctapi.c ctapi.h
 libopenctapi_la_LIBADD = $(top_builddir)/src/ct/libopenct.la
